@@ -1,0 +1,101 @@
+[
+    {
+        "generation": 1,
+        "status": "dead",
+        "final_net_worth": 1508.0976,
+        "cash": 53.40690000000018,
+        "stocks_owned": 9,
+        "actions": [
+            {
+                "step": 0,
+                "price": 102.5429,
+                "action": "BUY",
+                "cash": 897.4071,
+                "stocks_owned": 1,
+                "score": 682.8080227934017,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 1,
+                "price": 103.1832,
+                "action": "BUY",
+                "cash": 794.1739,
+                "stocks_owned": 2,
+                "score": 640.2098666862503,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 2,
+                "price": 104.1814,
+                "action": "BUY",
+                "cash": 689.9425000000001,
+                "stocks_owned": 3,
+                "score": 597.4100642480156,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 3,
+                "price": 104.6488,
+                "action": "BUY",
+                "cash": 585.2437000000002,
+                "stocks_owned": 4,
+                "score": 554.0017893482293,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 4,
+                "price": 105.0246,
+                "action": "BUY",
+                "cash": 480.16910000000024,
+                "stocks_owned": 5,
+                "score": 510.62428775585727,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 5,
+                "price": 105.8426,
+                "action": "BUY",
+                "cash": 374.2765000000002,
+                "stocks_owned": 6,
+                "score": 466.9377799796404,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 6,
+                "price": 106.2486,
+                "action": "BUY",
+                "cash": 267.9779000000002,
+                "stocks_owned": 7,
+                "score": 422.3375367396011,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 7,
+                "price": 106.8459,
+                "action": "BUY",
+                "cash": 161.0820000000002,
+                "stocks_owned": 8,
+                "score": 377.99875667306185,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 8,
+                "price": 107.5751,
+                "action": "BUY",
+                "cash": 53.456900000000175,
+                "stocks_owned": 9,
+                "score": 333.7095013840921,
+                "model_name": "Brave_Bear_244"
+            },
+            {
+                "step": 9,
+                "price": 107.7205,
+                "action": "DEATH_BANKRUPT",
+                "cash": 53.40690000000018,
+                "stocks_owned": 9,
+                "score": 288.2889109893618,
+                "model_name": "Brave_Bear_244"
+            }
+        ]
+    }
+]
