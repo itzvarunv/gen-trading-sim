@@ -81,15 +81,21 @@ def evaluate_single_model(model_name, weights, prices):
         window = prices[i:i+5]
         current_price = window[-1]
         
-        # Continuous infrastructure / compute cost per step (electricity model)
+        # Continuous infrastructure / compute cost per step
         cash -= 0.05
+        
+        # If cash dips below zero, auto-sell a stock if available to cover the deficit
         if cash < 0:
-            is_dead = True
-            action_log.append({
-                "step": i, "price": current_price, "action": "DEATH_INFRA_COST",
-                "cash": cash, "stocks_owned": stocks_owned, "score": 0.0
-            })
-            break
+            if stocks_owned > 0:
+                cash += current_price
+                stocks_owned -= 1
+            else:
+                is_dead = True
+                action_log.append({
+                    "step": i, "price": current_price, "action": "DEATH_INFRA_COST",
+                    "cash": cash, "stocks_owned": stocks_owned, "score": 0.0
+                })
+                break
             
         inputs = window + [cash, float(stocks_owned)]
         score = sum(inp * w for inp, w in zip(inputs, weights))
@@ -101,18 +107,21 @@ def evaluate_single_model(model_name, weights, prices):
                 stocks_owned += 1
                 action = "BUY"
             else:
-                is_dead = True
-                action = "DEATH_BANKRUPT"
-                action_log.append({
-                    "step": i, "price": current_price, "action": action,
-                    "cash": cash, "stocks_owned": stocks_owned, "score": score
-                })
-                break
+                action = "HOLD_CANT_AFFORD"
         elif score < -0.1:
             if stocks_owned > 0:
                 cash += current_price
                 stocks_owned -= 1
                 action = "SELL"
+                
+        total_net_worth = cash + (stocks_owned * current_price)
+        if total_net_worth <= 0:
+            is_dead = True
+            action_log.append({
+                "step": i, "price": current_price, "action": "DEATH_BANKRUPT",
+                "cash": cash, "stocks_owned": stocks_owned, "score": score
+            })
+            break
                 
         action_log.append({
             "step": i, "price": current_price, "action": action,
@@ -197,9 +206,7 @@ def evolve_pipeline(total_generations=100, target_population=8):
     for gen in range(1, total_generations + 1):
         results = game() 
         portfolios = results["portfolios"]
-        survivors = results["survivors"]
         
-        # Real-time per-generation agent JSON update (each agent maintains its own tracking file)
         for name, port in portfolios.items():
             safe_name = name.replace(" ", "_")
             agent_file_path = os.path.join(agents_dir, f"{safe_name}.json")
@@ -237,37 +244,38 @@ def evolve_pipeline(total_generations=100, target_population=8):
             gen_df["model_name"] = gen_df["model_name"].astype("category")
             master_logs.append(gen_df)
         
-        survivor_portfolios = {name: portfolios[name] for name in survivors if name in portfolios}
-        sorted_survivors = sorted(
-            survivor_portfolios.items(), 
+        all_evaluated = sorted(
+            portfolios.items(), 
             key=lambda x: x[1]["final_net_worth"], 
             reverse=True
         )
         
-        print(f"Gen {gen:3d} | Survivors: {len(sorted_survivors)}/{target_population}")
-        if sorted_survivors:
-            print(f"          | Top Performer: {sorted_survivors[0][0]} ({sorted_survivors[0][1]['final_net_worth']:.2f})")
+        print(f"Gen {gen:3d} | Total Evaluated: {len(all_evaluated)}")
+        if all_evaluated:
+            top_name, top_port = all_evaluated[0]
+            print(f"          | Top Performer: {top_name} ({top_port['final_net_worth']:.2f})")
             
-        if sorted_survivors and sorted_survivors[0][1]["final_net_worth"] > max_net_worth:
-            max_net_worth = sorted_survivors[0][1]["final_net_worth"]
-            ultimate_best_model = sorted_survivors[0][0]
-            
+            if top_port["final_net_worth"] > max_net_worth:
+                max_net_worth = top_port["final_net_worth"]
+                ultimate_best_model = top_name
+                
         if gen == total_generations:
             print("\nEvolution complete!")
             break
             
-        parent1 = sorted_survivors[0][0] if len(sorted_survivors) >= 1 else get_random_name()
-        parent2 = sorted_survivors[1][0] if len(sorted_survivors) >= 2 else parent1
+        parent1 = all_evaluated[0][0]
+        parent2 = all_evaluated[1][0] if len(all_evaluated) > 1 else parent1
 
-        next_gen_models = list(survivors)
+        surviving_elite = [model_name for model_name, _ in all_evaluated[:target_population - 2]]
+        next_gen_models = list(surviving_elite)
         
         with open("model_registry.json", "r") as f:
             current_registry = json.load(f)
-        survivor_weights = {name: current_registry["weights"][name] for name in survivors if name in current_registry["weights"]}
+        surviving_weights = {name: current_registry["weights"][name] for name in surviving_elite if name in current_registry["weights"]}
         
         agent_counter = 1
         while len(next_gen_models) < target_population:
-            child_name = f"Agent {agent_counter}"
+            child_name = f"Offspring_{gen}_{agent_counter}"
             reproduction(parent1, parent2, child_name)
             next_gen_models.append(child_name)
             agent_counter += 1
@@ -276,9 +284,13 @@ def evolve_pipeline(total_generations=100, target_population=8):
             updated_data = json.load(f)
             
         updated_data["alive_models"] = next_gen_models
-        for name in survivors:
-            if name in survivor_weights:
-                updated_data["weights"][name] = survivor_weights[name]
+        updated_data["weights"] = surviving_weights
+        
+        with open("lineage_registry.json", "r") as f:
+            lineages = json.load(f)
+        for lin in lineages:
+            if lin["child"] in next_gen_models:
+                updated_data["weights"][lin["child"]] = lin["child_weights"]
                 
         with open("model_registry.json", "w") as f:
             json.dump(updated_data, f, indent=4)
